@@ -35,7 +35,7 @@ help:
     label: API change management
   - label: Customization Options
     link: /customization-options/
-    icon: sparkles
+    icon: image
     items:
       - label: Custom domains
         link: /customization-options/custom-domains/
@@ -85,6 +85,13 @@ help:
         link: /organizations/create-and-manage-organizations/
       - label: Organization Access Management
         link: /organizations/organization-access-management/
+  - label: Documentation customization
+    icon: sparkles
+    items:
+      - label: Topics
+        link: /doc-topics/
+      - label: Custom code samples
+        link: /doc-code-samples/
   - label: Account
     icon: user
     items:
