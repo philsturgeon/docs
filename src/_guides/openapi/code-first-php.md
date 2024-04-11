@@ -1,28 +1,22 @@
 ---
-title: Generating OpenAPI docs for Laravel with scribe
+title: Generating OpenAPI docs for Laravel with Swagger-PHP
 authors: phil
 excerpt: This guide describes, in a code-first approach and Laravel codebase, how to generate OpenAPI description documents, enhancing it with contextual information and deploying it to Bump.sh.
 ---
 
 API Code-first is the art of building an API, and then popping some annotations or metadata in there to output API documentation in an API description format like [OpenAPI](https://spec.openapis.org/oas/latest.html).
 
-The most popular API Code-first approach in Laravel (also Lumen/Dingo) uses a tool called [Scribe](https://scribe.knuckles.wtf/) to help you add a few annotations to your codebase, and output OpenAPI without having to repeat yourself in code and YAML. The approach is conceptually very similar to Swagger-PHP which we outlined in the PHP guide, but is specifically written for Laravel. By hooking into the framework's guts it can massively reduce the amount of repetition of annotating things which are already defined by the framework.
+The most popular API Code-first approach in Laravel uses a tool called [Swagger-PHP](https://zircote.github.io/swagger-php/). With Swagger-PHP you write the OpenAPI for each API endpoint as annotations or PHP attributes, keeping the API description close to the code that it's describing.
 
-## Creating OpenAPI with Scribe
+## Creating OpenAPI with Swagger-PHP
 
-**Step 1:** Install the `knuckleswtf/scribe` Composer package.
-
-```
-composer require knuckleswtf/scribe
-```
-
-**Step 2:** Publish the config file.
+**Step 1:** Install the zircote/swagger-php Composer dependency.
 
 ```
-php artisan vendor:publish --tag=scribe-config
+composer require zircote/swagger-php
 ```
 
-**Step 3:** Add some annotations to your controllers.
+**Step 2:** Add some annotations to your controllers.
 
 Sprinkle metadata around your controllers explaining their paths, responses, and adding some descriptions that will help people understand how things work when the documentation is built. 
 
@@ -90,7 +84,7 @@ class WidgetController extends Controller
 
 _This metadata uses the PHP 8 [Attributes](https://www.php.net/manual/en/language.attributes.overview.php) syntax, but there is a docblock based syntax if you're stuck on an older version of PHP._
 
-**Step 4:** Export the OpenAPI from your source code.
+**Step 3:** Export the OpenAPI from your source code.
 
 ```
 $ vendor/bin/openapi src -o openapi.yaml
@@ -146,15 +140,15 @@ paths:
           description: Success
 ```
 
-**Step 5:** OpenAPI being generated means we can deploy it to Bump.sh. # Deploying OpenAPI documentation to Bump.sh. [Create and name](https://bump.sh/docs/new?utm_source=bump&utm_medium=content_hub&utm_campaign=getting_started) your first API documentation. Then, retrieve the name and token of this documentation from the _CI deployment_ settings page.
+**Step 4:** OpenAPI being generated means we can deploy it to Bump.sh. # Deploying OpenAPI documentation to Bump.sh. [Create and name](https://bump.sh/docs/new?utm_source=bump&utm_medium=content_hub&utm_campaign=getting_started) your first API documentation. Then, retrieve the name and token of this documentation from the _CI deployment_ settings page.
 
-**Step 6:** Install the Bump.sh CLI with [npm](https://docs.npmjs.com/cli/v9/configuring-npm/install?v=true).
+**Step 5:** Install the Bump.sh CLI with [npm](https://docs.npmjs.com/cli/v9/configuring-npm/install?v=true).
   
 ```bash
 npm install -g bump-cli
 ```
 
-**Step 7:** The moment you've been waiting for, deploying your OpenAPI to Bump.sh to generated beautiful hosted documentation!
+**Step 6:** The moment you've been waiting for, deploying your OpenAPI to Bump.sh to generated beautiful hosted documentation!
 
 ```bash
 $ bump deploy openapi.yaml \
@@ -164,11 +158,11 @@ $ bump deploy openapi.yaml \
 * Your new documentation version will soon be ready at https://bump.sh/bump-examples/hub/code-samples/doc/laravel-code-first
 ```
 
-**Step 8:** Head over to your documentation and see how it looks at this early stage.
+**Step 7:** Head over to your documentation and see how it looks at this early stage.
 
 ![Bare bones of an OpenAPI document rendered by the Bump.sh hosted API documentation interface](/images/guides/code-first-laravel-initial.png)
 
-It looks like a start, but there is so much more we can do, including explaining responses, including longer descriptions, all of which is crucial to making API documentation useful, relevant, and readable. Time to learn a bit more about [scribe Annotations](https://zircote.github.io/scribe/reference/attributes.html) and get more data into our docs.
+It looks like a start, but there is so much more we can do, including explaining responses, including longer descriptions, all of which is crucial to making API documentation useful, relevant, and readable. Time to learn a bit more about [Swagger-PHP Annotations](https://zircote.github.io/swagger-php/reference/attributes.html) and get more data into our docs.
 
 For the next trick, let's add parameters and multiple responses to this controller method.
 
@@ -273,7 +267,7 @@ class WidgetResource extends JsonResource
 }
 ```
 
-Here the scribe attributes are working with the reflection API to look at the name of the property and infer the types, so we don't need to define those agai. Rerunning `./vendor/bin/openapi app -o openapi.yaml` will add the following to `openapi.yaml`.
+Here the Swagger-PHP attributes are working with the reflection API to look at the name of the property and infer the types, so we don't need to define those agai. Rerunning `./vendor/bin/openapi app -o openapi.yaml` will add the following to `openapi.yaml`.
 
 ```yaml
 openapi: 3.0.0
@@ -328,7 +322,7 @@ Great, but now we need to join it up with the controller and a full response bod
   }
 ```
 
-Using ref this way feels a little funny at first because you're using a JSON Reference to something in an OpenAPI description you don't really control, but once you get the contention it makes sense. The `"#/components/schemas/WidgetResource"` name is generated from the class we put the `WidgetResource` class that contains a `#[OA\Schema()]`, and together that instructs scribe to make shared schema component, and now it's been referenced in your schema controller the whole thing comes together like this:
+Using ref this way feels a little funny at first because you're using a JSON Reference to something in an OpenAPI description you don't really control, but once you get the contention it makes sense. The `"#/components/schemas/WidgetResource"` name is generated from the class we put the `WidgetResource` class that contains a `#[OA\Schema()]`, and together that instructs Swagger-PHP to make shared schema component, and now it's been referenced in your schema controller the whole thing comes together like this:
 
 ```yaml
   '/api/widgets/{id}':
@@ -353,7 +347,7 @@ Using ref this way feels a little funny at first because you're using a JSON Ref
           description: 'Not found'
 ```
 
-There is a lot more work to be done until 100% of your API is covered, but you can use these concepts to build out most things, and if you need any other help the [scribe reference documentation](https://zircote.github.io/scribe/reference/attributes.html) can help you out.
+There is a lot more work to be done until 100% of your API is covered, but you can use these concepts to build out most things, and if you need any other help the [Swagger-PHP reference documentation](https://zircote.github.io/swagger-php/reference/attributes.html) can help you out.
 
 ## Sample Code
 
