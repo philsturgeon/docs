@@ -19,40 +19,57 @@ Cloud app with a CLI so grab that.
 
 ```
 npm install -g @wiremock/cli
+
+wiremock login
 ```
 
-![]()
+![](/images/guides/mocking-with-wiremock/register-for-wiremock-cloud.png)
+
+Make a new Wiremock Cloud account, or login with Google or GitHub accounts.
+
+The GitHub authorization is minimal and they're only trying to get your email address, so that's usually the easiest way to go.
+
+![](/images/guides/mocking-with-wiremock/wiremock-github-auth.png)
+
+Pop over to your new WireMock Cloud dashboard to continue, we'll get back to the CLI in a moment.
 
 ## Step 2: Add Your First API
 
-There are several ways to get OpenAPI into WireMock, but for the sake of simplicity we're going to use the web interface to upload your OpenAPI. If you are just starting out and don't have any OpenAPI yet, why not use the [Train Travel API](https://github.com/bump-sh-examples/train-travel-api) for now. 
+In the WireMock Cloud dashboard, create a new Mock API, and when it asks to pick a type pick REST.
 
+![](/images/guides/mocking-with-wiremock/wiremock-choose-protocol.png)
+
+If you were using Yé Oldé Mocking Toolés this would be the part where you spend hours, days, or weeks, manually recreating the mocking interface one endpoint, request, and response at a time, hoping you got it right but not really having any good way to tell. Thankfully there's absolutely no reason to do that sort of thing in the modern OpenAPI world.
+
+Seeing as Bump.sh users are already publishing OpenAPI documents as API documentation with CLI/CI tools, we can do the exact same thing for API mocking.
+
+_If you are just starting out and don't have any OpenAPI documents just yet, go and grab the [Train Travel API](https://github.com/bump-sh-examples/train-travel-api) so you can follow along learning about WireMock without having to go [learn everything about OpenAPI](_guides/openapi/specification/v3.1/introduction/what-is-openapi.md) first._
+
+```shell
+wiremock push open-api <wiremock-id> --file openapi.yaml
 ```
-wiremock push open-api e0oo3 --file train-travel-api/openapi.yaml
+
+The response from this command will say something like: 
+
+```text
+Successfully updated OpenAPI document for mock API with ID: <wiremock-id>
 ```
 
-
+That means its worked nicely, so we can now go kick the tires of our new mock API.
 
 ## Step 3: Try out the Mock Endpoints
 
-
-copy the mock base url 
+Whatever OpenAPI document you uploaded, the server URL will now be something like:
 
 ```
 https://e0oo3.wiremockapi.cloud/
 ```
 
-
-
-Quickly try out the mock server using curl, or your favourite HTTP client. 
-
-This grabs the list of stations from the mock server, which is a collection endpoint that returns a list of stations in the Train Travel API.
+All `paths:` defined in the OpenAPI will be available with the methods they support, so in the example of the train travel API we can `GET` the `/stations` path with the following command:
 
 ```
 curl --request GET https://e0oo3.wiremockapi.cloud/stations | jq .
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-100   512  100   512    0     0   1160      0 --:--:-- --:--:-- --:--:--  1158
+
 {
   "data": [
     {
@@ -78,8 +95,29 @@ curl --request GET https://e0oo3.wiremockapi.cloud/stations | jq .
 }
 ```
 
-This is generated from examples in the OpenAPI document but the data is not real, it's just sample data. This is a great way to get started, but you can do so much more with Wiremock using its "data sources".
+The default behavior of WireMock is to generate the responses from the `examples` defined in the OpenAPI document. 
 
+This is a great way to get started, but you can do so much more with WireMock if you'd like to provide a whole lot more /stations` than could reasonably be fit into the examples showing up on the API Documentation.
+
+## Step 4: Adding Data Sources
+
+WireMock has a feature called data sources, which let you load a whole bunch more data into the mock server than it can glean from examples alone. 
+
+Head over to the "Data Sources" tab on the top navigation, then click the big "Create new data source" button. 
+The WireMock Cloud interface suggests you can in fact connect any old sort of database source, but you'll need to talk to the team if you want to do anything other than a CSV for now. Fair enough, that sounds complicated. Let's keep it easy for now and stick to CSV. 
+
+The best way to do this right now is to pop a bunch of data in there (doesn't have to be everything ever, just a bit more than you would want to pop into an OpenAPI example), so lets shove a few hundred examples into a CSV file with names that match the properties expected in our OpenAPI. In this example of a `stations.csv` we have given the data source a name of `stations`.
+
+![](/images/guides/mocking-with-wiremock/create-new-data-source.png)
+
+Once that data source exists we need to hook up one of our responses to a data source, so the mocking engine knows it can use that. Pop back to Mock APIs, search for the `stations` in this example, then pick the new data source for that response.
+
+![](/images/guides/mocking-with-wiremock/hook-up-data-source.png)
+
+
+
+
+## Dynamic responses for writes
 
 
 ```
@@ -97,50 +135,10 @@ curl --request POST \
 
 
 
-Getting hateoas links to work.
 
-
-Finally, that HATEOAS link at the bottom there is not right. The id is `a248a638-000a-44b4-b19b-0ca30507a940`, so how can we get that showing up in the link? If we used `{{ uuid() }}` again it would be generate a second different UUID, WireMock templating has a brilliant feature called capture.
-
-```yaml
-examples:
-  new_booking:
-    summary: New Booking
-    value: |-
-      {
-        "id": "{{ uuid() > put(bookingId) }}",
-        "trip_id": "{{ request.body/trip_id }}",
-        "passenger_name": "{{ request.body/passenger_name }}",
-        "has_bicycle": {{ request.body/has_bicycle }},
-        "has_dog": {{ request.body/has_dog }},
-        "links": {
-          "self": "https://api.example.com/bookings/{{ bookingId }}"
-        }
-      }
-```
-
-Upload that again. Run the command again. 
-
-```yaml
-{
-  "id": "b4441c3d-b659-4f57-95d3-ce6ee592da7c",
-  "trip_id": "4f4e4e1-c824-4d63-b37a-d8d698862f1d",
-  "passenger_name": "New Passenger",
-  "has_bicycle": false,
-  "has_dog": false,
-  "links": {
-    "self": "https://api.example.com/bookings/b4441c3d-b659-4f57-95d3-ce6ee592da7c"
-  }
-}
-```
-
-Perfect! Now you can do almost anything you need to do with the API.
-
-## Step 4: Automate Mock Updates
+## Automate Mock Updates
 
 Most Bump.sh users use some form of Continuous Integration (CircleCI, GitHub Actions, Jenkins, etc.) to push changes to their API documentation whenever the source code is changed, and you can work this way with WireMock, or there are some alternatives you can try out.
-
-### Update Mocks with Continuous Integration
 
 Below is the standard GitHub Action used to deploy API changes to Bump.sh with one modification to also deploy changes to your WireMock server.
 
@@ -169,17 +167,18 @@ jobs:
           token: ${{secrets.BUMP_TOKEN}}
           file: api/openapi.yaml
 
-      - uses: microcks/import-github-action@v1
+      - uses: wiremock/import-github-action@v1
         with:
           specificationFiles: 'api/openapi.yaml:true'
-          microcksURL: 'https://mocks.example.com/api/'
+          wiremockURL: 'https://mocks.example.com/api/'
           keycloakClientId:  ${{ secrets.MICROCKS_SERVICE_ACCOUNT }}
           keycloakClientSecret:  ${{ secrets.MICROCKS_SERVICE_ACCOUNT_CREDENTIALS }}
+
 ```
 
-You'll need to set up some secrets on your repository for that WireMock service account, but then you're done! A fully functioning mock server running on the cloud, which you can interact with internally or externally depending on how you set it up.
+You'll need to set up some secrets on your repository for that WireMock service account, but then you're done! A fully functioning mock server running on the cloud, which anyone can interact with internally or externally depending on how you set it up.
 
-> Learn more about [WireMock Automation](https://microcks.io/documentation/guides/automation/) to see how to push updates to WireMock using other CI systems, via the API, or using the CLI elsewhere. You can also use the [WireMock Scheduler](https://microcks.io/documentation/guides/usage/importing-content/#2-import-content-via-importer) instead, to pull content from a repo on a regular schedule instead of pushing.
+> Learn more about [WireMock Automation](https://wiremock.io/documentation/guides/automation/) to see how to push updates to WireMock using other CI systems, via the API, or using the CLI elsewhere. You can also use the [WireMock Scheduler](https://wiremock.io/documentation/guides/usage/importing-content/#2-import-content-via-importer) instead, to pull content from a repo on a regular schedule instead of pushing.
 {: .info }
 
 ## Step 5: Add Mock Server to API Documentation
@@ -197,11 +196,11 @@ servers:
 
 Adding this second server URL will offer users a dropdown menu in the Bump.sh documentation.
 
-![The select box apears on the Bump.sh API documentation allowing users to pick between servers based on server name](/images/guides/mocking-with-microcks/multiple-servers.png)
+![The select box appears on the Bump.sh API documentation allowing users to pick between servers based on server name](TODO)
 
 The mock server is now an option, and all of the URLs and example HTTP requests will show up using the chosen server URL.
 
-![A screenshot of the API documentation updated to contain the mocks.example.com after mock server has been selected](/images/guides/mocking-with-microcks/bump-mock-server-curl.png)
+![A screenshot of the API documentation updated to contain the mocks.example.com after mock server has been selected](TODO)
 
 If there's no production API only the mock server is ready then only define that:
 
