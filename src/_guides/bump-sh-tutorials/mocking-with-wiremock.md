@@ -115,6 +115,57 @@ Once that data source exists we need to hook up one of our responses to a data s
 ![](/images/guides/mocking-with-wiremock/hook-up-data-source.png)
 
 
+Cant just magically produce JSON so we gotta make a template, because how would it know if theres a data [] or some other sort of envelope or wrapper. 
+
+https://docs.wiremock.io/data-sources/overview#rendering-data-in-response
+
+
+```json
+{{#formatJson}}
+{
+  "data": [
+    {{~#arrayJoin ',' data.items[0,1] as |item|~}}
+      {
+        "id": {{item.id}},
+        "name": "{{item.name}}"
+      }
+    {{/arrayJoin}}
+  ]
+}
+{{/formatJson}}
+```
+
+
+Want to make pagination work? 
+
+```
+{{#formatJson}}
+{{val request.query.page or='1' assign='page'}}
+{{#assign 'limitParameter'}}{{#if request.query.limit}}&limit={{request.query.limit}}{{/if}}{{/assign}}
+{
+  "data": [
+    {{~#arrayJoin ',' data.items as |station|~}}
+    {
+      "id": "{{station.id}}",
+      "name": "{{station.name}}",
+      "address": "{{station.address}}",
+      "time_zone": "{{station.timezone}}",
+      "country_code": "{{station.country_code}}"
+    }
+    {{/arrayJoin}}
+  ],
+  "links": {
+    "self": "{{request.baseUrl}}{{request.url}}",
+    "next": "{{request.baseUrl}}/stations?page={{math page '+' 1}}{{limitParameter}}"{{#and (neq page 1) (neq page '1')}},
+    "prev": "{{request.baseUrl}}/stations?page={{math page '-' 1}}{{limitParameter}}"{{/and}}
+  }
+}
+{{/formatJson}}
+```
+
+
+The templating system here is handlebars, which will feel familiar to some of you as it's been around for ~15 years. If you need to learn basics (or refresh your memory) the Wiremock [Templating Basics](https://docs.wiremock.io/response-templating/basics) guide will get you there.
+
 
 
 ## Dynamic responses for writes
